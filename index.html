@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<head>
+  <img src="logo.jpeg" alt="De Werkplaats" style="width: 300px; margin-bottom: 20px;">
+  <title>Workshop Aanmelding</title>
+  <p id="status">Laden...</p>
+  <style>
+    body {
+      font-family: Arial;
+      background: #f3eeeb;
+      text-align: center;
+    }
+    .box {
+      background: white;
+      padding: 25px;
+      margin: 50px auto;
+      width: 90%;
+      max-width: 400px;
+      border-radius: 12px;
+    }
+    input, button {
+      width: 90%;
+      padding: 12px;
+      font-size: 16px;
+      margin: 6px;
+    }
+    button {
+      background: #645dd1;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 25px;
+    }
+    .persoon {
+      border-top: 1px solid #ddd;
+      margin-top: 10px;
+      padding-top: 10px;
+    }
+    .remove {
+      background: #999;
+    }
+  </style>
+</head>
+<body>
+
+<div class="box">
+  <h2>Workshop Aanmelding</h2>
+  <p id="status">Klik op aanmelden om je in te schrijven</p>
+
+  <form onsubmit="sendData(event)">
+    <div id="personen"></div>
+
+  <button type="submit" id="btn">Aanmelden</button>
+<button type="button" onclick="addPersoon()">+ Persoon toevoegen</button>
+<button type="button" onclick="removeLast()">Verwijderen</button>
+
+  <p id="melding"></p>
+</div>
+
+<script>
+const URL = "https://script.google.com/macros/s/AKfycbwYuCOy_-bymj5keq37-nilHyWO6OxPP-iYBSXJtPRoOeS3Fdj5ihawuNxpUVUjBbiu/exec";
+let beschikbarePlekken = 0;
+
+// ➕ Persoon toevoegen
+function addPersoon() {
+  const container = document.getElementById("personen");
+  const count = container.children.length + 1;
+
+  const div = document.createElement("div");
+  div.className = "persoon";
+
+  div.innerHTML = `
+    <h4>Persoon ${count}</h4>
+    <input placeholder="Naam" required>
+    <input type="number" placeholder="Leeftijd" required>
+    <input placeholder="Telefoon">
+    <input type="email" placeholder="Email">
+  `;
+
+  container.appendChild(div);
+}
+
+// ❌ Laatste persoon verwijderen
+function removeLast() {
+  const container = document.getElementById("personen");
+  if (container.lastElementChild) {
+    container.lastElementChild.remove();
+  }
+}
+
+// 📊 Teller ophalen
+function updateCount() {
+  const script = document.createElement("script");
+  script.src = URL + "?callback=handleCount";
+  document.body.appendChild(script);
+}
+
+function handleCount(data) {
+  beschikbarePlekken = data.left;
+
+  const status = document.getElementById("status");
+
+  if (data.left > 0) {
+    status.innerText = data.left + " plekken beschikbaar";
+  } else {
+    status.innerText = "Workshop is VOL";
+    document.getElementById("btn").disabled = true;
+  }
+}
+
+// 🚀 Verzenden
+function sendData(e) {
+  e.preventDefault();
+
+  const personenDivs = document.querySelectorAll(".persoon");
+  let personen = [];
+
+  personenDivs.forEach(div => {
+    const inputs = div.querySelectorAll("input");
+
+    personen.push({
+      naam: inputs[0].value,
+      leeftijd: inputs[1].value,
+      telefoon: inputs[2].value,
+      email: inputs[3].value
+    });
+  });
+
+  if (personen.length === 0) {
+    alert("Voeg minstens 1 persoon toe");
+    return;
+  }
+
+  const aantal = personen.length;
+
+  if (aantal > beschikbarePlekken) {
+    alert("Er zijn nog maar " + beschikbarePlekken + " plekken!");
+    return;
+  }
+
+  document.getElementById("btn").disabled = true;
+  document.getElementById("melding").innerText = "Bezig met verzenden...";
+
+  fetch(URL, {
+    method: "POST",
+    mode: "no-cors",
+    body: JSON.stringify(personen),
+    headers: {
+      "Content-Type": "text/plain;charset=utf-8"
+    }
+  })
+  .then(() => {
+    document.getElementById("melding").innerText = "✅ Aanmelding gelukt!";
+    document.getElementById("personen").innerHTML = "";
+    addPersoon();
+    document.getElementById("btn").disabled = false;
+  })
+  .catch(() => {
+    document.getElementById("melding").innerText = "❌ Fout bij verzenden";
+    document.getElementById("btn").disabled = false;
+  });
+}
+
+// 🚀 START
+addPersoon();
+updateCount();
+setInterval(updateCount, 2000);
+</script>
+
+</body>
+</html>
